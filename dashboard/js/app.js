@@ -176,7 +176,7 @@ const timeline = NP.Timeline("#tl", { year: y => { if (y !== state.year) set({ y
 function syncTop() { const h = Math.ceil($(".map-top").getBoundingClientRect().height); if (h > 0) $("#mapwrap").style.setProperty("--toph", h + "px"); }
 function highlightRows(sel, key) { document.querySelectorAll(sel + " .row").forEach(r => r.classList.toggle("hl", key != null && (r.dataset.eco === String(key) || r.dataset.node === String(key)))); }
 
-function set(patch) { if (patch.story != null) closePage(); Object.assign(state, patch); render(); }
+function set(patch) { Object.assign(state, patch); render(); }
 NP.app = { state, set, render: () => render(), map, loadFlows, DEFAULT, nodeMax };
 
 /* ───────── KPI bar = layer 1: the four numbers a first-time reader needs, nothing else ───────── */
@@ -412,7 +412,8 @@ function renderChrome() {
   ["#zglobe", "#zin", "#zout", "#zreset"].forEach(id => $(id).classList.toggle("hidden", sc));
   $("#zshot").classList.toggle("hidden", state.view === "table" || (NP.phone && state.view === "scatter"));      // on a phone the chart page scrolls and the button would lie over its axis
   document.documentElement.classList.toggle("storying", state.story != null);
-  document.querySelectorAll("#tabbar button").forEach(b => { const on = b.dataset.page ? uiPage.v === b.dataset.page : !uiPage.v && b.dataset.view === state.view; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+  document.documentElement.dataset.view = state.view;
+  updateTabs();
   $('#tabbar [data-page="panel"]').classList.toggle("has", state.eco != null);
 }
 
@@ -560,7 +561,7 @@ function doSearch() {
   const score = d => (d.f.startsWith(q) || d.fa.startsWith(q) ? 0 : d.f.includes(" " + q) ? 1 : d.f.includes(q) ? 2 : d.fa.includes(q) ? 3 : 9);
   sHits = searchable.map(d => [score(d), d]).filter(x => x[0] < 9).sort((a, b) => a[0] - b[0] || (a[1].kind === "eco" ? 0 : 1) - (b[1].kind === "eco" ? 0 : 1)).slice(0, 14).map(x => x[1]); sAt = 0; drawHits();
 }
-function pick(d) { if (!d) return; sIn.value = ""; sList.classList.add("hidden"); sHits = []; sIn.blur(); setMenu(false); closePage();
+function pick(d) { if (!d) return; sIn.value = ""; sList.classList.add("hidden"); sHits = []; sIn.blur(); setMenu(false); if (NP.phone) window.scrollTo({ top: 0, behavior: "auto" });
   if (d.kind === "node") return set({ node: d.key });
   set({ eco: d.key, view: "map" }); if (NP.isGroup(d.key)) frameScope(d.key); else map.flyTo(d.key); }
 sIn.addEventListener("input", doSearch);
@@ -651,30 +652,37 @@ let lsRaf = 0; window.addEventListener("resize", () => { cancelAnimationFrame(ls
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutStage).catch(() => {});
 
 /* ───────── phone ─────────
-   html.phone (set before the first paint by the script in index.html, kept in step here) gives one working surface — the map, the chart or
-   the table — with the time line and five tabs under it. "Pizza" and "Details" are pages that cover the surface; nothing on the page
-   scrolls, so a finger on the map is the map's. The search box and the buttons of the header are in a menu. */
-const rootEl = document.documentElement, uiPage = { v: null };
+   html.phone (set before the first paint by the script in index.html, kept in step here): one column read from top to bottom — header, key
+   numbers, the map (or the chart, or the table), the pizza, the details — and the PAGE scrolls. The time line and the five tabs are fixed at
+   the foot. Map / Compare / Table change what the first block shows; Pizza and Details are places in the page (the tab that is lit is the
+   one in view). The search box and the buttons of the header are in a menu. */
+const rootEl = document.documentElement;
 const mqPhone = matchMedia(NP.PHONE_Q), mqLand = matchMedia("(orientation: landscape) and (max-height: 500px)");
 function setMenu(on) { rootEl.classList.toggle("menu-open", !!on); $("#btn-menu").setAttribute("aria-expanded", on ? "true" : "false"); $("#btn-search").setAttribute("aria-expanded", on ? "true" : "false"); }
-function closePage() { if (!uiPage.v) return; uiPage.v = null; rootEl.classList.remove("page-dock", "page-panel"); }
-function setPage(p) {
-  if (!NP.phone) p = null; if (uiPage.v === p) return; uiPage.v = p; setMenu(false);
-  rootEl.classList.toggle("page-dock", p === "dock"); rootEl.classList.toggle("page-panel", p === "panel");
-  renderChrome();
+let atPlace = null;                                          // which place of the page is in view: "dock", "panel" or null (the first block)
+function updateTabs() {
+  if (NP.phone) { const vh = innerHeight, mid = vh * 0.5, d = $("#dock").getBoundingClientRect().top, p = $("#panel").getBoundingClientRect().top;
+    atPlace = p <= mid && scrollY > 0 ? "panel" : d <= mid && scrollY > 0 ? "dock" : null; }
+  else atPlace = null;
+  document.querySelectorAll("#tabbar button").forEach(b => { const on = b.dataset.page ? atPlace === b.dataset.page : !atPlace && b.dataset.view === state.view; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
 }
+let spyRaf = 0; window.addEventListener("scroll", () => { if (!NP.phone || spyRaf) return; spyRaf = requestAnimationFrame(() => { spyRaf = 0; updateTabs(); }); }, { passive: true });
+/* the first block (map, chart or table) is what the reader asked for: its tool bar goes to the top of the window. The map keeps the key numbers above it */
+function seeBlock(smooth) { const y = state.view === "map" && !rootEl.classList.contains("land") ? 0 : Math.max(0, $("#mapwrap").getBoundingClientRect().top + scrollY - 2); window.scrollTo({ top: y, behavior: smooth && !map.reduced ? "smooth" : "auto" }); }
+const toPlace = id => { const el = $(id), y = el.getBoundingClientRect().top + scrollY - (rootEl.classList.contains("land") ? 0 : 6); window.scrollTo({ top: Math.max(0, y), behavior: map.reduced ? "auto" : "smooth" }); };
 function syncPhone0() { NP.phone = mqPhone.matches; rootEl.classList.toggle("phone", NP.phone); rootEl.classList.toggle("land", NP.phone && mqLand.matches); }
 function syncPhone() {
   NP.phone = mqPhone.matches; rootEl.classList.toggle("phone", NP.phone); rootEl.classList.toggle("land", NP.phone && mqLand.matches);
-  if (!NP.phone) { closePage(); setMenu(false); rootEl.classList.remove("page-dock", "page-panel"); }
-  syncTop(); renderChrome(); map.resetZoom();
+  if (!NP.phone) setMenu(false);
+  syncTop(); renderChrome(); renderPizza(false); map.resetZoom();
 }
 ["change"].forEach(t => { mqPhone.addEventListener(t, syncPhone); mqLand.addEventListener(t, syncPhone); });
-$("#tabbar").addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return;
-  if (b.dataset.page) setPage(uiPage.v === b.dataset.page ? null : b.dataset.page); else { closePage(); setMenu(false); set({ view: b.dataset.view }); } });
-{ const f = $("#foot"), n = document.createElement("div"); n.className = "hdr-note"; n.innerHTML = f.innerHTML.replace(/ id="[^"]*"/g, ""); document.querySelector(".header-actions").appendChild(n); }
+$("#tabbar").addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return; setMenu(false);
+  if (b.dataset.page) { toPlace(b.dataset.page === "dock" ? "#dock" : "#panel"); return; }
+  if (b.dataset.view !== state.view) set({ view: b.dataset.view });
+  seeBlock(true); });
 $("#btn-menu").onclick = ev => { ev.stopPropagation(); setMenu(!rootEl.classList.contains("menu-open")); };
-$("#btn-search").onclick = ev => { ev.stopPropagation(); setMenu(true); setTimeout(() => sIn.focus(), 30); };
+$("#btn-search").onclick = ev => { ev.stopPropagation(); window.scrollTo({ top: 0, behavior: "auto" }); setMenu(true); setTimeout(() => sIn.focus(), 30); };
 document.addEventListener("click", ev => { if (rootEl.classList.contains("menu-open") && !ev.target.closest(".header-actions, #btn-menu, #btn-search")) setMenu(false); });
 document.querySelector(".header-actions").addEventListener("click", ev => { if (ev.target.closest("button")) setMenu(false); });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape" && rootEl.classList.contains("menu-open")) setMenu(false); });
@@ -718,8 +726,9 @@ function boot() {
   render();
   booted = true;
   layoutStage();
-  if (map.size()[1] < 340) $("#legend").classList.add("min");
+  if (map.size()[1] < 340 || NP.phone) $("#legend").classList.add("min");
   const ld = document.getElementById("loader"); if (ld) ld.remove();
+  if (NP.phone && (state.view !== "map" || rootEl.classList.contains("land")) && !(NP.Cover && NP.Cover.isOn())) setTimeout(() => seeBlock(false), 60);
   if (!NP.hasImports()) loadImports().catch(() => { const m = $("#mapmsg"); m.textContent = "Part of the data could not be loaded. Reload the page to try again."; m.classList.remove("hidden"); });
 }
 if (deepLinked && !NP.hasImports()) { $("#loader-msg").textContent = "Loading trade data…"; loadImports().then(boot, () => { $("#loader-msg").textContent = "The data could not be loaded. Check the connection and reload."; }); }

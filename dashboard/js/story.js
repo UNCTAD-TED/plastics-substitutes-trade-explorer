@@ -54,7 +54,7 @@ function draw(i) {
 let shown = null;
 function go(i) {
   if (i < 0 || i >= CH.length) return;
-  const c = CH[i]; NP.app.stopPlay(); NP.app.map.resetZoom();
+  const c = CH[i]; NP.app.stopPlay(); NP.app.map.resetZoom(); if (NP.phone) window.scrollTo({ top: 0, behavior: "auto" });
   NP.app.set(Object.assign({ view: "map", story: i }, c.state));
   if (c.play && !NP.app.map.reduced) setTimeout(() => { if (NP.app.state.story === i) { NP.app.play(c.play[0], c.play[1], c.play[2]); } }, 700);
 }

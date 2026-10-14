@@ -64,18 +64,19 @@ NP.Map = function (on) {
   let compared = null, selected = null, hovered = null, spikes = null, dots = null, flows = null, raf = null;
   let globe = false, rot = [0, -18], gk = 1, s0 = 1, flatScale = 1, vers = 0, dragging = false, moved = false, geoRaf = null, fastNext = false, wheelT = null;
 
-  const zoom = d3.zoom().scaleExtent([1, 14]).on("zoom", ev => { if (globe) return; T = ev.transform; touchAction(); gz.attr("transform", T); drawOverlay(); if (flows && (reduced || !raf)) drawFlows(0); });
+  /* one finger on the flat map that is not zoomed in is the page's (d3.zoom would cancel the browser's scroll with preventDefault); two fingers zoom it */
+  const zoom = d3.zoom().scaleExtent([1, 14]).filter(ev => (ev.type.indexOf("touch") === 0 && !globe && T.k <= 1.001 && ev.touches && ev.touches.length < 2 ? false : (!ev.ctrlKey || ev.type === "wheel") && !ev.button)).on("zoom", ev => { if (globe) return; T = ev.transform; touchAction(); gz.attr("transform", T); drawOverlay(); if (flows && (reduced || !raf)) drawFlows(0); });
   svg.call(zoom).on("dblclick.zoom", null);
-  /* a finger on the map: on a page that scrolls (tablets) a vertical swipe scrolls it while the map is not zoomed in; on a phone the page
-     does not scroll, so the finger is the map's. Pinch and sideways drags always reach the map. */
-  function touchAction() { svg.style("touch-action", NP.phone || globe || T.k > 1.001 ? "none" : "pan-y"); }
-  touchAction();
+  /* a finger on the map: the page scrolls, so a vertical swipe scrolls it while the map is not zoomed in (otherwise the map would trap the
+     finger on the largest block of the page). Zoomed in, or on the globe, the finger is the map's. Pinch and sideways drags always reach the map. */
+  function touchAction() { svg.style("touch-action", globe || T.k > 1.001 ? "none" : "pan-y"); }
   /* globe interaction: drag rotates, wheel zooms */
   const drag = d3.drag().filter(() => globe)
     .on("start", () => { dragging = true; moved = false; })
     .on("drag", ev => { if (Math.abs(ev.dx) + Math.abs(ev.dy) > 0) moved = true; const k = 180 / Math.PI / proj.scale(); rot = [rot[0] + ev.dx * k, Math.max(-75, Math.min(75, rot[1] - ev.dy * k))]; scheduleGeo(true); })
     .on("end", () => { dragging = false; setTimeout(() => { moved = false; }, 0); scheduleGeo(false); });
-  svg.call(drag);
+  svg.call(drag);                                      // d3.drag (like d3.zoom) sets touch-action: none on the element: ours is set after both
+  touchAction();
   svg.node().addEventListener("wheel", ev => { if (!globe) return; ev.preventDefault(); ev.stopPropagation(); gk = Math.max(0.7, Math.min(8, gk * Math.pow(1.0015, -ev.deltaY))); scheduleGeo(true);
     clearTimeout(wheelT); wheelT = setTimeout(() => scheduleGeo(false), 180); }, { passive: false, capture: true });
 
@@ -84,7 +85,7 @@ NP.Map = function (on) {
 
   function buildProj() {
     if (globe) { proj = d3.geoOrthographic().clipAngle(90).rotate([rot[0], rot[1]]).fitExtent([[10, 52], [W - 10, H - 16]], { type: "Sphere" }); s0 = proj.scale(); proj.scale(s0 * gk); }
-    else proj = d3.geoEqualEarth().fitExtent([[10, 46], [W - 10, H - 12]], { type: "Sphere" });
+    else proj = d3.geoEqualEarth().fitExtent([[10, topPad()], [W - 10, H - 12]], { type: "Sphere" });
     path = d3.geoPath(proj);
   }
   function redrawGeo(fast) {
@@ -105,11 +106,13 @@ NP.Map = function (on) {
   }
   function scheduleGeo(fast) { fastNext = !!fast; if (!geoRaf) geoRaf = requestAnimationFrame(() => redrawGeo(fastNext)); }
 
+  /* room above the map for the toolbar: 46 px on a desk; on a phone what the toolbar really takes (app.js measures it into --toph) */
+  const topPad = () => (NP.phone ? Math.max(46, (parseFloat(getComputedStyle(wrap.node ? wrap.node() : wrap).getPropertyValue("--toph")) || 0) + 8) : 46);
   function resize() {
     const r = wrap.getBoundingClientRect(); W = Math.max(200, r.width); H = Math.max(160, r.height);
     svg.attr("viewBox", `0 0 ${W} ${H}`); over.attr("viewBox", `0 0 ${W} ${H}`);
     const dpr = window.devicePixelRatio || 1; canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const flat = d3.geoEqualEarth().fitExtent([[10, 46], [W - 10, H - 12]], { type: "Sphere" }), fp = d3.geoPath(flat); flatScale = flat.scale();
+    const flat = d3.geoEqualEarth().fitExtent([[10, topPad()], [W - 10, H - 12]], { type: "Sphere" }), fp = d3.geoPath(flat); flatScale = flat.scale();
     feats.forEach(f => { if (f.eco != null) area[f.eco] = fp.area(f); });               // size of each economy on the flat map (used to decide which need a dot)
     buildProj();
     zoom.translateExtent([[0, 0], [W, H]]).extent([[0, 0], [W, H]]);

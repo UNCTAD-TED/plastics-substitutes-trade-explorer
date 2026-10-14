@@ -25,7 +25,7 @@ NP.Pizza = function (sel, on) {
   const R = 170, R0 = 47, RW0 = 176, RW1 = 185, CH = 4.5;       // CH = approx. char width at 8.5px
   const gArcs = svg.append("g"), gCut = svg.append("g"), gRef = svg.append("g"), gLab = svg.append("g"), gCtr = svg.append("g"), LIFT = 9;
   const arc = d3.arc().startAngle(d => d.a0).endAngle(d => d.a1).innerRadius(d => d.y0).outerRadius(d => d.y1);
-  let last = null, hoverId = null, labTimer = null, lastData = [], lifted = null, lastOff = null;
+  let last = null, hoverId = null, labTimer = null, lastData = [], lifted = null, lastOff = null, S = 1;     // S: type scale of this drawing (CSS --pzs; a phone is 1.36)
   const subtree = id => { const s = new Set(); (function d(n) { s.add(n.id); (n.children || []).forEach(d); })(NP.node[id]); return s; };
 
   function layout(f, val) {
@@ -40,17 +40,17 @@ NP.Pizza = function (sel, on) {
     return out;
   }
   function textFor(d, det) {
-    const name = d.n.name, rm = (d.y0 + d.y1) / 2, arcLen = (d.a1 - d.a0) * rm, band = d.y1 - d.y0, w1 = name.length * CH + 6;
+    const CHs = CH * S, name = d.n.name, rm = (d.y0 + d.y1) / 2, arcLen = (d.a1 - d.a0) * rm, band = d.y1 - d.y0, w1 = name.length * CHs + 6, B1 = 12 * S, B2 = 22 * S, B3 = 33 * S, A2 = 11 * S, A3 = 22 * S, A4 = 33 * S;
     const mid = (d.a0 + d.a1) / 2, th = (mid * 180 / Math.PI) % 360, x = rm * Math.sin(mid), y = -rm * Math.cos(mid);
     let mode = null, lines = [name];
-    if (arcLen >= w1 && band >= 12) mode = "tan"; else if (band >= w1 && arcLen >= 11) mode = "rad";
-    else { const wl = wrapName(name), wb = Math.max(...wl.map(s => s.length)) * CH + 6;
-      if (wl.length === 2) { if (arcLen >= wb && band >= 22) mode = "tan"; else if (band >= wb && arcLen >= 22) mode = "rad"; if (mode) lines = wl; }
-      const w3 = !mode && wrap3(name), wc = w3 ? Math.max(...w3.map(s => s.length)) * CH + 6 : 0;
-      if (w3) { if (arcLen >= wc && band >= 33) mode = "tan"; else if (band >= wc && arcLen >= 33) mode = "rad"; if (mode) lines = w3; } }
+    if (arcLen >= w1 && band >= B1) mode = "tan"; else if (band >= w1 && arcLen >= A2) mode = "rad";
+    else { const wl = wrapName(name), wb = Math.max(...wl.map(s => s.length)) * CHs + 6;
+      if (wl.length === 2) { if (arcLen >= wb && band >= B2) mode = "tan"; else if (band >= wb && arcLen >= A3) mode = "rad"; if (mode) lines = wl; }
+      const w3 = !mode && wrap3(name), wc = w3 ? Math.max(...w3.map(s => s.length)) * CHs + 6 : 0;
+      if (w3) { if (arcLen >= wc && band >= B3) mode = "tan"; else if (band >= wc && arcLen >= A4) mode = "rad"; if (mode) lines = w3; } }
     if (!mode) return null;
     /* optional line of figures under the name (first page): only along the arc and only where one more line fits */
-    const extra = det && mode === "tan" && lines.length < 3 && band >= lines.length * 10 + 14 && arcLen >= det.length * CH * 0.9 + 6 ? det : null;
+    const extra = det && mode === "tan" && lines.length < 3 && band >= (lines.length * 10 + 14) * S && arcLen >= det.length * CHs * 0.9 + 6 ? det : null;
     let rot = mode === "tan" ? th : th - 90;
     if (mode === "tan" && th > 90 && th < 270) rot += 180;
     if (mode === "rad" && th > 180) rot += 180;
@@ -68,7 +68,7 @@ NP.Pizza = function (sel, on) {
     el.attr("class", t.dark ? "dark" : null);
     if (t.lines.length === 1 && !t.extra) { el.text(t.lines[0]); return; }
     t.lines.forEach((s, i) => el.append("tspan").attr("x", 0).attr("dy", i ? "1.15em" : t.lines.length === 3 ? "-1.15em" : t.lines.length === 2 ? (t.extra ? "-1.1em" : "-0.55em") : "-0.5em").text(s));
-    if (t.extra) el.append("tspan").attr("class", "dl").attr("x", 0).attr("dy", 10).text(t.extra);
+    if (t.extra) el.append("tspan").attr("class", "dl").attr("x", 0).attr("dy", 10 * S).text(t.extra);
   }
   function addLabel(t, delay) {                             // delay: fade in after so many ms; null = there at once
     const el = gLab.append("text"), n = el.node(); fill(el, t); n.__p = { a: t.a, r: t.r, rot: t.rot, ox: t.ox, oy: t.oy }; n.__k = shape(t); el.attr("transform", at(n.__p)); labs.set(t.id, n);
@@ -86,6 +86,7 @@ NP.Pizza = function (sel, on) {
   function render(o) {
     const ride = !!last && last.focus === o.focus;          // the same pizza with other values: slices and labels move, nothing is drawn afresh
     last = o;
+    S = parseFloat(getComputedStyle(svg.node()).getPropertyValue("--pzs")) || 1;
     const f = NP.node[o.focus], data = layout(f, o.val), dur = o.animate === false ? 0 : o.dur || 600;
     /* optional (first page): one piece — a slice with everything outside it — is moved out of the pizza and outlined, as if cut out */
     const ld = o.lift ? data.find(d => d.n.id === o.lift) : null, lset = ld ? subtree(o.lift) : null, lm = ld ? (ld.a0 + ld.a1) / 2 : 0;
