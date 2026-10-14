@@ -81,8 +81,12 @@ const nice = v => { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p
 
 /* ───────── tooltips ───────── */
 const tip = $("#tip");
+/* what the last pointer was: a finger or a mouse (a touch-screen laptop has both). A finger does not point at things: a tap selects, and
+   what it selects is shown in the key numbers and the panel. So no tooltip is left hanging over the map after a tap. */
+document.addEventListener("pointerdown", e => { NP.pointer.touch = e.pointerType === "touch"; if (NP.pointer.touch) tip.classList.add("hidden"); }, true);
+document.addEventListener("pointermove", e => { if (e.pointerType === "mouse") NP.pointer.touch = false; }, true);
 function showTip(html, ev) {
-  if (!html) { tip.classList.add("hidden"); return; }
+  if (!html || NP.pointer.touch) { tip.classList.add("hidden"); return; }
   tip.innerHTML = html; tip.classList.remove("hidden");
   if (!ev) return; const w = tip.offsetWidth, h = tip.offsetHeight; let x = ev.clientX + 14, y = ev.clientY + 14;
   if (x + w > innerWidth - 6) x = ev.clientX - w - 14; if (y + h > innerHeight - 6) y = ev.clientY - h - 14;
@@ -172,7 +176,7 @@ const timeline = NP.Timeline("#tl", { year: y => { if (y !== state.year) set({ y
 function syncTop() { const h = Math.ceil($(".map-top").getBoundingClientRect().height); if (h > 0) $("#mapwrap").style.setProperty("--toph", h + "px"); }
 function highlightRows(sel, key) { document.querySelectorAll(sel + " .row").forEach(r => r.classList.toggle("hl", key != null && (r.dataset.eco === String(key) || r.dataset.node === String(key)))); }
 
-function set(patch) { Object.assign(state, patch); render(); }
+function set(patch) { if (patch.story != null) closePage(); Object.assign(state, patch); render(); }
 NP.app = { state, set, render: () => render(), map, loadFlows, DEFAULT, nodeMax };
 
 /* ───────── KPI bar = layer 1: the four numbers a first-time reader needs, nothing else ───────── */
@@ -234,7 +238,7 @@ function renderPizza(animate) {
   const path = NP.ancestors(node).reverse();
   $("#crumbs").innerHTML = path.map((p, i) => (i === path.length - 1 ? `<span class="cur">${esc(p.short || p.name)}</span>` : `<button data-node="${p.id}">${esc(p.short || p.name)}</button>`)).join(`<span class="sep">›</span>`);
   const basis = imp && e != null ? NP.impBasis(e, year, node) : null;
-  $("#pizza-note").textContent = wOn() ? "The pizza shows value. Map, numbers and panel are in tonnes." : e == null ? (imp ? "World imports, as reported by the importers. Click a slice to select it." : "Click a slice to select it; click the centre to go back.")
+  $("#pizza-note").textContent = wOn() ? "The pizza shows value. Map, numbers and panel are in tonnes." : e == null ? (imp ? NP.tap("World imports, as reported by the importers. Click a slice to select it.") : NP.tap("Click a slice to select it; click the centre to go back."))
     : imp ? `${full}: imports${basis === "own" ? "" : basis === "mixed" ? ", partly as reported by exporters (†)" : ", as reported by exporters (†): it did not report"}. Outer ring = world.`
     : NP.isReporter(e, year, "ALL") ? `${full}: exports. Outer ring = world.` : `${full} did not report exports for ${year}. “Importers” shows its imports.`;
   const kids = f.children.map(c => ({ n: c, v: val(c.id) })), max = d3.max(kids, d => d.v) || 1;
@@ -406,7 +410,10 @@ function renderChrome() {
   $("#meas-fld").classList.toggle("hidden", !canWeigh());
   document.querySelectorAll("#meas button").forEach(b => { const on = (b.dataset.v === "w") === wOn(); b.classList.toggle("active", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
   ["#zglobe", "#zin", "#zout", "#zreset"].forEach(id => $(id).classList.toggle("hidden", sc));
-  $("#zshot").classList.toggle("hidden", state.view === "table");
+  $("#zshot").classList.toggle("hidden", state.view === "table" || (NP.phone && state.view === "scatter"));      // on a phone the chart page scrolls and the button would lie over its axis
+  document.documentElement.classList.toggle("storying", state.story != null);
+  document.querySelectorAll("#tabbar button").forEach(b => { const on = b.dataset.page ? uiPage.v === b.dataset.page : !uiPage.v && b.dataset.view === state.view; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+  $('#tabbar [data-page="panel"]').classList.toggle("has", state.eco != null);
 }
 
 const LENS_CAP = { map: "Map shows", scatter: "Chart shows", table: "Table shows" };
@@ -433,7 +440,7 @@ function render() {
   if (changed("map", `${base}|${s.lens}|${s.spec}|${s.fcol}|${s.view}|${s.story}|${fl}`)) renderMap();
   if (changed("panel", `${base}|${s.lens}|${fl}`)) renderPanel();
   if (changed("tl", base)) renderTimeline();
-  if (s.view !== "map") syncTop();
+  if (s.view !== "map" || NP.phone) syncTop();
   if (s.view === "scatter" && NP.Scatter && NP.Scatter.render) NP.Scatter.render(s);
   if (s.view === "table" && NP.Table && changed("table", `${base}|${s.view}|${s.lens}`)) NP.Table.render(s);
   if (s.view !== "table") memo.table = null;
@@ -553,7 +560,7 @@ function doSearch() {
   const score = d => (d.f.startsWith(q) || d.fa.startsWith(q) ? 0 : d.f.includes(" " + q) ? 1 : d.f.includes(q) ? 2 : d.fa.includes(q) ? 3 : 9);
   sHits = searchable.map(d => [score(d), d]).filter(x => x[0] < 9).sort((a, b) => a[0] - b[0] || (a[1].kind === "eco" ? 0 : 1) - (b[1].kind === "eco" ? 0 : 1)).slice(0, 14).map(x => x[1]); sAt = 0; drawHits();
 }
-function pick(d) { if (!d) return; sIn.value = ""; sList.classList.add("hidden"); sHits = [];
+function pick(d) { if (!d) return; sIn.value = ""; sList.classList.add("hidden"); sHits = []; sIn.blur(); setMenu(false); closePage();
   if (d.kind === "node") return set({ node: d.key });
   set({ eco: d.key, view: "map" }); if (NP.isGroup(d.key)) frameScope(d.key); else map.flyTo(d.key); }
 sIn.addEventListener("input", doSearch);
@@ -605,10 +612,12 @@ $("#method-close").onclick = () => $("#method").close();
 $("#btn-story").onclick = () => { if (NP.Story && NP.Story.start) NP.Story.start(); };
 $("#btn-link").onclick = () => { const b = $("#btn-link"), done = t => { b.textContent = t; setTimeout(() => { b.textContent = "Copy link"; }, 1600); };
   try { navigator.clipboard.writeText(location.href).then(() => done("Link copied"), () => done("Copy the address bar")); } catch (e) { done("Copy the address bar"); } };
-window.addEventListener("hashchange", () => {
+function onHash() {
   if (location.hash.length <= 1 || location.hash === "#cover") { if (NP.Cover) NP.Cover.show(false); return; }
+  if (!NP.hasImports()) { loadImports().then(onHash, () => {}); return; }
   const before = JSON.stringify(state); readHash(); const covered = NP.Cover && NP.Cover.isOn(); if (covered) NP.Cover.hide();
-  if (covered || JSON.stringify(state) !== before) render(); });
+  if (covered || JSON.stringify(state) !== before) render(); }
+window.addEventListener("hashchange", onHash);
 /* back to the first page: from the dock (the pizza grows back into the page) or from the logo */
 $("#btn-cover").onclick = () => { if (NP.Cover) NP.Cover.show(true); };
 $(".header-logo").onclick = () => { if (NP.Cover) NP.Cover.show(true); };
@@ -641,12 +650,78 @@ NP.app.layoutStage = layoutStage;
 let lsRaf = 0; window.addEventListener("resize", () => { cancelAnimationFrame(lsRaf); lsRaf = requestAnimationFrame(layoutStage); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutStage).catch(() => {});
 
+/* ───────── phone ─────────
+   html.phone (set before the first paint by the script in index.html, kept in step here) gives one working surface — the map, the chart or
+   the table — with the time line and five tabs under it. "Pizza" and "Details" are pages that cover the surface; nothing on the page
+   scrolls, so a finger on the map is the map's. The search box and the buttons of the header are in a menu. */
+const rootEl = document.documentElement, uiPage = { v: null };
+const mqPhone = matchMedia(NP.PHONE_Q), mqLand = matchMedia("(orientation: landscape) and (max-height: 500px)");
+function setMenu(on) { rootEl.classList.toggle("menu-open", !!on); $("#btn-menu").setAttribute("aria-expanded", on ? "true" : "false"); $("#btn-search").setAttribute("aria-expanded", on ? "true" : "false"); }
+function closePage() { if (!uiPage.v) return; uiPage.v = null; rootEl.classList.remove("page-dock", "page-panel"); }
+function setPage(p) {
+  if (!NP.phone) p = null; if (uiPage.v === p) return; uiPage.v = p; setMenu(false);
+  rootEl.classList.toggle("page-dock", p === "dock"); rootEl.classList.toggle("page-panel", p === "panel");
+  renderChrome();
+}
+function syncPhone0() { NP.phone = mqPhone.matches; rootEl.classList.toggle("phone", NP.phone); rootEl.classList.toggle("land", NP.phone && mqLand.matches); }
+function syncPhone() {
+  NP.phone = mqPhone.matches; rootEl.classList.toggle("phone", NP.phone); rootEl.classList.toggle("land", NP.phone && mqLand.matches);
+  if (!NP.phone) { closePage(); setMenu(false); rootEl.classList.remove("page-dock", "page-panel"); }
+  syncTop(); renderChrome(); map.resetZoom();
+}
+["change"].forEach(t => { mqPhone.addEventListener(t, syncPhone); mqLand.addEventListener(t, syncPhone); });
+$("#tabbar").addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.page) setPage(uiPage.v === b.dataset.page ? null : b.dataset.page); else { closePage(); setMenu(false); set({ view: b.dataset.view }); } });
+{ const f = $("#foot"), n = document.createElement("div"); n.className = "hdr-note"; n.innerHTML = f.innerHTML.replace(/ id="[^"]*"/g, ""); document.querySelector(".header-actions").appendChild(n); }
+$("#btn-menu").onclick = ev => { ev.stopPropagation(); setMenu(!rootEl.classList.contains("menu-open")); };
+$("#btn-search").onclick = ev => { ev.stopPropagation(); setMenu(true); setTimeout(() => sIn.focus(), 30); };
+document.addEventListener("click", ev => { if (rootEl.classList.contains("menu-open") && !ev.target.closest(".header-actions, #btn-menu, #btn-search")) setMenu(false); });
+document.querySelector(".header-actions").addEventListener("click", ev => { if (ev.target.closest("button")) setMenu(false); });
+document.addEventListener("keydown", ev => { if (ev.key === "Escape" && rootEl.classList.contains("menu-open")) setMenu(false); });
+new ResizeObserver(() => { if (NP.phone) syncTop(); }).observe($(".map-top"));          // the tool bar may take one row or two
+
+/* definitions: on a screen without hover the dotted words, the key numbers and the † explain themselves on a tap (the `title` of a mouse) */
+const defnote = $("#defnote"); let defTimer = 0;
+function hideDef() { clearTimeout(defTimer); defnote.classList.add("hidden"); }
+document.addEventListener("click", ev => {
+  if (!NP.pointer.touch) return;
+  const t = ev.target.closest("abbr[title], .kpi-item[title], sup[title], .tag[title], .legend .lg-t[title]");
+  if (!t || t.closest("button, a, select, input, th, label")) { hideDef(); return; }
+  defnote.textContent = t.getAttribute("title"); defnote.classList.remove("hidden"); clearTimeout(defTimer); defTimer = setTimeout(hideDef, 9000);
+}, true);
+document.addEventListener("scroll", hideDef, true);
+
+/* ───────── imports arrive after the first page ─────────
+   totals_m.js (M and D, about half of the numbers) is loaded once the first page is up, so that a phone shows it after half the download.
+   Anything that opens the explorer waits for it (the button says so); a link that opens the explorer straight away holds the loader. */
+let impP = null, booted = false;                   // before boot() the address has not been read: a render now would overwrite it with the defaults
+function loadImports() {
+  if (NP.hasImports()) return Promise.resolve();
+  if (impP) return impP;
+  return (impP = new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = "data/totals_m.js";
+    s.onload = () => { NP.attachImports(window.NP_TOTALS_M); delete window.NP_TOTALS_M; s.remove();
+      for (const k of Object.keys(maxCache)) delete maxCache[k]; for (const k of Object.keys(wMax)) delete wMax[k];       // computed while imports were 0
+      for (const k of Object.keys(memo)) memo[k] = null; if (NP.Scatter && NP.Scatter.reset) NP.Scatter.reset(); if (booted) render(); res(); };
+    s.onerror = () => { impP = null; rej(new Error("totals_m.js")); };
+    document.head.appendChild(s);
+  }));
+}
+NP.app.imports = loadImports;
+
 /* a link with a view opens the explorer; anything else opens the first page */
 const deepLinked = location.hash.length > 1 && location.hash !== "#cover";
-readHash();
-if (NP.Cover) NP.Cover.init(!deepLinked);
-render();
-layoutStage();
-if (map.size()[1] < 340) $("#legend").classList.add("min");
-const ld = document.getElementById("loader"); if (ld) ld.remove();
+function boot() {
+  readHash();
+  syncPhone0();
+  if (NP.Cover) NP.Cover.init(!deepLinked);
+  render();
+  booted = true;
+  layoutStage();
+  if (map.size()[1] < 340) $("#legend").classList.add("min");
+  const ld = document.getElementById("loader"); if (ld) ld.remove();
+  if (!NP.hasImports()) loadImports().catch(() => { const m = $("#mapmsg"); m.textContent = "Part of the data could not be loaded. Reload the page to try again."; m.classList.remove("hidden"); });
+}
+if (deepLinked && !NP.hasImports()) { $("#loader-msg").textContent = "Loading trade data…"; loadImports().then(boot, () => { $("#loader-msg").textContent = "The data could not be loaded. Check the connection and reload."; }); }
+else boot();
 })();

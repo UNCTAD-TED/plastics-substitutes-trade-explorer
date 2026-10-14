@@ -36,7 +36,7 @@ const CH = [
   { title: "Small slices, few hands", state: { node: "NPS365", lens: "rca", year: Y1, eco: null },
     text: () => `Many substitutes depend on a handful of producers. Natural rubber: ${b(top("NPS365", Y1, 3))}. For Côte d’Ivoire it is ${b(p0(I.merchShare("NPS365", E("384"), Y1)))} of all merchandise exports. Least developed countries supply only ${b(NP.fmtPct(I.groupShare("NPS000", NP.GROUP.ldc, Y1), 1))} of world substitute exports. Colour shows where a slice matters most (RCA above 1).` },
   { title: "Find your economy", state: { node: "ALL", lens: "exp", year: Y1, eco: null }, last: true,
-    text: () => `Now explore. Click a slice of the pizza to choose ${b("what")}, an economy on the map (or the search box) to choose ${b("where")}, and drag the timeline to choose ${b("when")}. “Compare” plots economies against GDP per capita and other indicators; “Methodology” explains every number.` },
+    text: () => `Now explore. ${NP.tap("Click")} a slice of the pizza to choose ${b("what")}, an economy on the map (or the search box) to choose ${b("where")}, and drag the timeline to choose ${b("when")}. “Compare” plots economies against GDP per capita and other indicators; “Methodology” explains every number.` },
 ];
 
 const el = document.getElementById("story");

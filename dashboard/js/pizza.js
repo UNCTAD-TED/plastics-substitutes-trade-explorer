@@ -95,7 +95,7 @@ NP.Pizza = function (sel, on) {
     s.exit().transition().duration(dur / 2).style("opacity", 0).remove();
     s.enter().append("path").attr("class", "arc")
       .each(function (d) { this.__c = { a0: d.a0, a1: d.a0, y0: d.y0, y1: d.y1 }; })
-      .on("mousemove", (ev, d) => { hoverId = d.n.id; applyHL(); on.hover(d.n.id, ev); })
+      .on("mousemove", (ev, d) => { if (NP.pointer.touch) return; hoverId = d.n.id; applyHL(); on.hover(d.n.id, ev); })
       .on("mouseleave", () => { hoverId = null; applyHL(); on.hover(null); })
       .on("click", (ev, d) => on.select(d.n.id))
       .merge(s).attr("fill", d => d.n.color)

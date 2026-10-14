@@ -91,7 +91,7 @@ function drawCard() {
     c.innerHTML = `<div class="cv-how"><b>How to read the pizza</b>
       <div><i style="background:${NP.node.P_00.color}"></i><span><b>Plastics</b>: ${NP.node.P_00.children.length} life-cycle stages, from primary forms to waste</span></div>
       <div><i style="background:${S.color}"></i><span><b>Non-plastic substitutes</b>: raw materials and value-added products, ${groups} groups and ${S.leaves.length} sub-groups</span></div>
-      <p>Move over a slice for its value and trend. <b>Click a slice to take that piece</b> and see it cut by exporter.</p></div>`;
+      <p>${NP.TOUCH ? "" : "Move over a slice for its value and trend. "}<b>${NP.tap("Click")} a slice to take that piece</b> and see it cut by exporter.</p></div>`;
     return;
   }
   const n = NP.node[id], v = NP.Xw(id, y), tot = NP.Xw("ALL", y), g = y > Y[0] ? I.cagr(id, NP.W, Y[0], y) : null;
@@ -101,7 +101,7 @@ function drawCard() {
     <div class="cv-cn"><div><b>${NP.fmtUSD(v)}</b><span>world exports, ${y}</span></div><div><b>${NP.fmtPct(tot ? v / tot : null, 1)}</b><span>of the whole pizza</span></div>${g != null ? `<div><b>${NP.fmtSigned(g)}</b><span>a year since ${Y[0]}</span></div>` : ""}</div>
     <div class="cv-cs">${spark(NP.seriesX(id, NP.W), NP.symbolColor(id), y)}</div>
     <div class="cv-ct">${top.length ? `<span>Largest exporters</span> ${top.map(d => `${esc(NP.shortName(d.e))} ${NP.fmtPct(d.v / v, 0)}`).join(" · ")}` : "&nbsp;"}</div>
-    <div class="cv-cf"><span>Click to take this piece and cut it by exporter</span></div>`;
+    <div class="cv-cf"><span>${NP.tap("Click")} to take this piece and cut it by exporter</span></div>`;
 }
 
 /* ───────── the board: a piece of the pizza, cut by exporter ─────────
@@ -211,7 +211,7 @@ function boardText() {
   $("#cv-cap").innerHTML = `Who exports it · ${y}${y > Y1 ? " (provisional)" : ""}<small>height of a triangle = export value</small>`;
   /* the way down the hierarchy: the pieces inside this one; for a sub-group, the pieces next to it */
   const inside = !!n.children, kids = (inside ? n.children : n.parent.children).map(c => ({ c, v: NP.Xw(c.id, y) })).sort((a, b) => b.v - a.v), base = inside ? v : NP.Xw(n.parent.id, y);
-  $("#cv-chips-cap").innerHTML = inside ? `Inside this piece<small>${kids.length} smaller pieces; click one to take it</small>` : `Next to it in ${esc((n.parent.short || n.parent.name).toLowerCase())}<small>${kids.length} pieces</small>`;
+  $("#cv-chips-cap").innerHTML = inside ? `Inside this piece<small>${kids.length} smaller pieces; ${NP.tap("click")} one to take it</small>` : `Next to it in ${esc((n.parent.short || n.parent.name).toLowerCase())}<small>${kids.length} pieces</small>`;
   $("#cv-chips").innerHTML = kids.map(k => `<button class="cv-chip${k.c.id === id ? " on" : ""}" data-take="${k.c.id}" title="${esc(k.c.long || k.c.name)}: ${NP.fmtUSD(k.v)}"><i style="background:${k.c.color}"></i><span>${esc(k.c.name)}</span><small>${NP.fmtPct(base ? k.v / base : null)}</small></button>`).join("");
   $("#cv-enter").firstChild.textContent = "Explore this piece in the dashboard ";
 }
@@ -389,8 +389,15 @@ function film(back, B) {
 const fade = back => [el.animate(back ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }], { duration: reduced ? 1 : 260, easing: "ease-out", fill: "both" })];
 
 /* page → explorer. opt.node / opt.eco: open the explorer on that slice / economy (default: the piece on the board); opt.tour: start the story */
+let waiting = false;
 async function enter(opt) {
-  opt = opt || {}; if (!on || busy) return; busy = true; stopPlay(); NP.showTip(null);
+  opt = opt || {}; if (!on || busy || waiting) return;
+  if (!NP.hasImports()) {                                      // the imports are still on their way (js/app.js, loadImports): the explorer needs them
+    const b = $("#cv-enter"), t0 = b.innerHTML; waiting = true; b.classList.add("wait"); b.innerHTML = "Loading the data…";
+    try { await NP.app.imports(); } catch (e) { b.innerHTML = "The data could not be loaded. Try again."; waiting = false; b.classList.remove("wait"); setTimeout(() => { b.innerHTML = t0; }, 3500); return; }
+    b.innerHTML = t0; b.classList.remove("wait"); waiting = false;
+  }
+  busy = true; stopPlay(); NP.showTip(null);
   const app = NP.app, dock = $("#pizza"), wrap = dock.parentNode, node = opt.node || pin;
   const patch = {}; if (node && NP.node[node]) patch.node = node; if (opt.eco != null && NP.eco[opt.eco]) { patch.eco = opt.eco; patch.lens = "exp"; }
   if (patch.node || patch.eco != null) app.set(Object.assign(patch, { view: "map", story: null }));   // the explorer changes behind the page

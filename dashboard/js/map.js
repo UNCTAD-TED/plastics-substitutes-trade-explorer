@@ -64,8 +64,12 @@ NP.Map = function (on) {
   let compared = null, selected = null, hovered = null, spikes = null, dots = null, flows = null, raf = null;
   let globe = false, rot = [0, -18], gk = 1, s0 = 1, flatScale = 1, vers = 0, dragging = false, moved = false, geoRaf = null, fastNext = false, wheelT = null;
 
-  const zoom = d3.zoom().scaleExtent([1, 14]).on("zoom", ev => { if (globe) return; T = ev.transform; gz.attr("transform", T); drawOverlay(); if (flows && (reduced || !raf)) drawFlows(0); });
+  const zoom = d3.zoom().scaleExtent([1, 14]).on("zoom", ev => { if (globe) return; T = ev.transform; touchAction(); gz.attr("transform", T); drawOverlay(); if (flows && (reduced || !raf)) drawFlows(0); });
   svg.call(zoom).on("dblclick.zoom", null);
+  /* a finger on the map: on a page that scrolls (tablets) a vertical swipe scrolls it while the map is not zoomed in; on a phone the page
+     does not scroll, so the finger is the map's. Pinch and sideways drags always reach the map. */
+  function touchAction() { svg.style("touch-action", NP.phone || globe || T.k > 1.001 ? "none" : "pan-y"); }
+  touchAction();
   /* globe interaction: drag rotates, wheel zooms */
   const drag = d3.drag().filter(() => globe)
     .on("start", () => { dragging = true; moved = false; })
@@ -114,7 +118,7 @@ NP.Map = function (on) {
   }
   const areaNow = e => (area[e] || 0) * (globe ? Math.pow(proj.scale() / flatScale, 2) * 0.55 : T.k * T.k);
 
-  function hover(e, ev) { hovered = e; hoverOutline.attr("d", e != null && featOf[e] ? path(featOf[e]) : null); on.hover(e, ev); }
+  function hover(e, ev) { if (e != null && NP.pointer.touch) return; hovered = e; hoverOutline.attr("d", e != null && featOf[e] ? path(featOf[e]) : null); on.hover(e, ev); }
   function setFill(fn) { lands.attr("fill", d => { if (d.colorEco == null) return "var(--land)"; const c = fn(d.colorEco); return c == null ? "url(#nodata)" : c; }); if (dots) drawOverlay(); }
   function setSelected(e) { selected = e; const d = e != null && featOf[e] ? path(featOf[e]) : null; selOutline.attr("d", d); selHalo.attr("d", d); }
   function setCompared(e) { compared = e; cmpOutline.attr("d", e != null && featOf[e] ? path(featOf[e]) : null); }

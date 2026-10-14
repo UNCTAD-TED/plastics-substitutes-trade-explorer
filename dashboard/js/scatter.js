@@ -374,7 +374,7 @@ function plot(C, D, pts, year) {
   j.exit().remove();
   const en = j.enter().append("circle").attr("cx", d => x(d.x)).attr("cy", d => y(d.y)).attr("r", same ? 0 : d => r(d.v));
   const all = en.merge(j).attr("class", d => "bub" + (d.sel ? " sel" : "") + (d.cmp ? " cmp" : "") + (d.m ? " hol" : "")).attr("data-key", d => d.key).attr("data-c", d => (d.c == null ? "" : d.c)).attr("fill", d => d.color).style("stroke", d => (d.m ? d.color : d.edge)).style("fill-opacity", d => (d.faded ? 0.1 : null)).style("stroke-opacity", d => (d.faded ? 0.25 : null))
-    .on("mouseenter", (ev, d) => hover(d.key))
+    .on("mouseenter", (ev, d) => { if (!NP.pointer.touch) hover(d.key); })
     .on("mousemove", (ev, d) => NP.showTip(C.tip(d) + `<table style="margin-top:4px"><tr><td>${esc(ax.label)}</td><td>${(ax.tip || ax.fmt)(d.x)}</td></tr><tr><td>${esc(ay.label)}</td><td>${(ay.tip || ay.fmt)(d.y)}</td></tr></table>`, ev))
     .on("mouseleave", () => { NP.showTip(null); hover(null); }).on("click", (ev, d) => C.click(d)).order();
   (same && !NP.app.map.reduced ? all.transition().duration(520).ease(d3.easeCubicInOut) : all.interrupt()).attr("cx", d => x(d.x)).attr("cy", d => y(d.y)).attr("r", d => r(d.v));
@@ -421,15 +421,15 @@ function render(st) {
   $("#sc-leg").innerHTML = SC.items.map(it => { if (it.pick) keyPick[it.k] = it.pick;
       return `<span class="sc-key${it.pick ? " door" : ""}${it.on ? " on" : ""}" data-k="${it.k}"${it.pick ? ` role="button" tabindex="0" aria-pressed="${it.on ? "true" : "false"}" title="${it.on ? "Back to all" : "Select " + esc(it.label) + " everywhere"}"` : ""}>${dot(SC.color(it.k))}${esc(it.label)} <small>${nOf(it.k)}</small></span>`; }).join("")
     + `<span class="sz" title="${esc(C.size)}"><i class="sc-size"></i>${esc(C.sizeShort || C.size.replace("Bubble area", "Area"))}</span>` + (C.hollow && pts.some(d => d.m) ? `<span class="sz">${dot("#6e6259", true)}† imports as reported by the exporters</span>` : "");
-  $("#sc-hint").textContent = slices ? (st.eco == null ? "These are the slices of the world’s pizza. Pick an economy or a group (search box, map or table) to see its slices instead." : "Click a slice to select it everywhere.")
+  $("#sc-hint").textContent = NP.tap(slices ? (st.eco == null ? "These are the slices of the world’s pizza. Pick an economy or a group (search box, map or table) to see its slices instead." : "Click a slice to select it everywhere.")
     : mode === "reg" ? "The 20 regions together are the world; none overlaps another. Click one to look at it everywhere."
     : mode === "grp" ? "Groups overlap (the least developed countries are developing economies too): their bubbles do not add up. Point at a group to see its path over the years."
-    : st.eco == null ? "Click a bubble to open an economy and see its path over the years." : NP.isGroup(st.eco) ? "Economies outside the group are faded." : "";
+    : st.eco == null ? "Click a bubble to open an economy and see its path over the years." : NP.isGroup(st.eco) ? "Economies outside the group are faded." : "");
   $("#sc-note").textContent = [C.count(act.length)].concat(C.notes || [], ["same axes in every year: press ▶"], C.ax.log || C.ay.log ? ["logarithmic scale" + (C.ax.log && C.ay.log ? "s" : "")] : [], year > NP.LAST_FULL_YEAR ? [`${year} is provisional`] : []).join(" · ");
   const sideEl = $(".sc-side"); sideEl.classList.remove("tight"); if (sideEl.scrollHeight > sideEl.clientHeight + 2) sideEl.classList.add("tight");
   last = { mode: C.mode, lens: C.lens, kind: C.kind, custom: C.custom, key: C.key, x: C.ax.key, y: C.ay.key, xLabel: C.ax.label, yLabel: C.ay.label, title: C.title(year), finding: $("#sc-find").textContent, facts: F,
     scheme: SC.key, classes: SC.items.map(it => ({ k: it.k, label: it.label, color: SC.color(it.k), n: nOf(it.k), door: !!it.pick, on: !!it.on })),
     refX: C.ax.ref ? C.ax.ref(year) : null, refY: C.ay.ref ? C.ay.ref(year) : null, pts: pts.map(d => ({ key: d.key, x: d.x, y: d.y, v: d.v, m: !!d.m, faded: !!d.faded, sel: !!d.sel, c: d.c })), domain: D.dom };
 }
-NP.Scatter = { render, info: () => last };
+NP.Scatter = { render, info: () => last, reset: () => { for (const k of Object.keys(cache)) delete cache[k]; order.length = 0; lastKey = null; } };
 })();

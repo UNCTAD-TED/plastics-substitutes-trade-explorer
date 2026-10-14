@@ -63,8 +63,8 @@ NP.Panel = {
     if (node === "ALL" || node === "P_00" || node === "NPS000") h += `<div class="group-h">${imp ? "What the world imports" : "What the world’s pizza is made of"}</div>` + makeup(id => NP.worldOf(id, year, kind));
     h += `<div class="group-h">${imp ? "Largest importers" : "Largest exporters"} · ${rk.length} economies</div>`;
     h += bars(rk.slice(0, 10).map(d => ({ key: d.e, name: NP.eco[d.e].n, v: d.v, text: `${NP.fmtUSD(d.v)}${d.m ? DAG(year) : ""} · ${NP.fmtPct(d.v / w)}` })), max, col, "data-eco");
-    h += imp ? `<p class="note">Each economy’s imports as it reports them: ${NP.nImpReporters(year, node)} economies reported ${year}${year > NP.LAST_FULL_YEAR ? " — provisional" : ""}. † ${rk.filter(d => d.m).length} others did not: what the reporting economies exported to them is shown instead and is not part of the world total. Click an economy for its profile.</p>`
-      : `<p class="note">${NP.nReporters(year, node)} economies reported ${year}${year > NP.LAST_FULL_YEAR ? " — provisional: several large exporters have not reported yet" : ""}. Click an economy for its profile.</p>`;
+    h += imp ? `<p class="note">Each economy’s imports as it reports them: ${NP.nImpReporters(year, node)} economies reported ${year}${year > NP.LAST_FULL_YEAR ? " — provisional" : ""}. † ${rk.filter(d => d.m).length} others did not: what the reporting economies exported to them is shown instead and is not part of the world total. ${NP.tap("Click")} an economy for its profile.</p>`
+      : `<p class="note">${NP.nReporters(year, node)} economies reported ${year}${year > NP.LAST_FULL_YEAR ? " — provisional: several large exporters have not reported yet" : ""}. ${NP.tap("Click")} an economy for its profile.</p>`;
     /* layer 3: go deeper */
     h += `<div class="layer-h">Go deeper</div>`;
     const rm = I.regionMatrix(node, year); let who = "";

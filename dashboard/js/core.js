@@ -7,6 +7,17 @@
 "use strict";
 const M = root.NP_META, T = root.NP_TOTALS, EC = root.NP_ECON;
 const NP = root.NP = root.NP || {};
+/* totals.js holds the exports (all that the first page needs). Imports M (own reports) and D (exporters' reports) come in totals_m.js, which the
+   page loads in the background; until then every import accessor answers 0 and NOTHING THAT IS SHOWN may use it (app.js keeps the explorer
+   covered until NP.hasImports()). */
+NP.hasImports = () => !!(T.M && T.D);
+NP.attachImports = o => { T.M = o.M; T.D = o.D; };
+/* touch. PHONE_Q = the windows that get the phone layout (a narrow window, or a low one on a touch screen); TOUCH = a device without hover.
+   pointer.touch = the last pointer was a finger (app.js keeps it): then nothing is "pointed at", a tap selects. tap() says a mouse gesture as a touch one. */
+NP.PHONE_Q = "(max-width: 700px), (max-width: 1050px) and (pointer: coarse), (max-height: 500px) and (pointer: coarse)";
+const mq = q => !!(root.matchMedia && root.matchMedia(q).matches);
+NP.phone = mq(NP.PHONE_Q); NP.TOUCH = mq("(hover: none)"); NP.pointer = { touch: false };
+NP.tap = s => (NP.TOUCH ? String(s).replace(/\bClick\b/g, "Tap").replace(/\bclick\b/g, "tap").replace(/\bPoint at\b/g, "Tap") : s);
 
 /* ───────── dimensions ───────── */
 const YEARS = NP.YEARS = M.years, NY = YEARS.length, Y0 = YEARS[0];

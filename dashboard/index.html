@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#009edb">
+<script>/* the phone layout is chosen before the first paint (the same query is in js/core.js, NP.PHONE_Q): a narrow window, or a touch screen of up to 1050 px */
+(function(){try{var d=document.documentElement,m=matchMedia,p=m("(max-width: 700px), (max-width: 1050px) and (pointer: coarse), (max-height: 500px) and (pointer: coarse)").matches;d.classList.toggle("phone",p);
+d.classList.toggle("land",p&&m("(orientation: landscape) and (max-height: 500px)").matches);}catch(e){}})();</script>
 <title>Plastics and their substitutes: global trade explorer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -68,6 +72,8 @@
         <h3>One pizza: plastics and their substitutes in global trade</h3>
         <h4>UNCTAD &middot; Who makes, sells and buys plastics and the natural and mineral materials that could replace them<span class="header-sources"> &middot; Export value, 2005–2024 &middot; Sources: UNCTADstat, UN&nbsp;Comtrade</span></h4>
       </div>
+      <button id="btn-search" class="hdr-icon" aria-label="Search for an economy or a product" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
+      <button id="btn-menu" class="hdr-icon" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="header-actions">
         <div class="search" id="search">
           <input id="search-input" type="search" placeholder="Find an economy or a product…" autocomplete="off" aria-label="Find an economy, a group or a product slice" aria-controls="search-list">
@@ -134,19 +140,24 @@
   <div id="tl" class="tl"></div>
 </section>
 
+<nav id="tabbar" aria-label="Views and pages">
+  <button data-view="map">Map</button><button data-view="scatter">Compare</button><button data-view="table">Table</button><button data-page="dock" class="first-page-tab">Pizza</button><button data-page="panel">Details</button>
+</nav>
+
 <footer id="foot">
   <p><strong>Source:</strong> UNCTAD calculations based on UNCTADstat “Plastics trade by partner” and “Trade in non-plastic substitutes” (experimental, HS 2022 groupings; UN Comtrade), and UNCTADstat GDP, population and total merchandise trade. Value in current US$ as each economy reports it: exports by the exporter, imports by the importer († where it did not report: as reported by the exporters); “World” is the sum of reporting economies. <span id="foot-year"></span></p>
   <p><strong>Map:</strong> The boundaries and names shown and the designations used on this map do not imply official endorsement or acceptance by the United Nations. Dotted and dashed lines represent approximate borders for which the final status has not yet been agreed.</p>
 </footer>
 
 <div id="tip" class="tip hidden"></div>
+<div id="defnote" class="defnote hidden" role="status"></div>
 <dialog id="method"><div class="method-in"><button id="method-close" class="btn-line" aria-label="Close">Close</button><div id="method-body"></div></div></dialog>
 
 <script src="js/vendor/d3.min.js"></script>
 <script src="js/vendor/topojson-client.min.js"></script>
 <script src="assets/un_map.js"></script>
 <script src="data/meta.js"></script>
-<script src="data/totals.js"></script>
+<script src="data/totals.js"></script>        <!-- exports; the imports (data/totals_m.js) are loaded by js/app.js once the first page is up -->
 <script src="data/weights.js"></script>
 <script src="data/econ.js"></script>
 <script src="data/regions.js"></script>

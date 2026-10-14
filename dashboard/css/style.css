@@ -301,6 +301,7 @@ details.sec .sb{padding:2px 0 10px}
 .mk-l{display:flex;flex-wrap:wrap;gap:1px 10px;font-size:11px;color:var(--grey-text);margin:-2px 0 8px}
 .mk-l span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;background:var(--c)}
 .panel p.dl{margin-top:14px}
+.panel p.dl .btn-line{white-space:normal;text-align:left;line-height:1.35}      /* the panel can be as narrow as 300 px: the label wraps instead of being cut */
 /* ── "More maps" menu ── */
 .more{position:relative;display:flex}
 .menu{position:absolute;top:calc(100% + 4px);left:0;width:300px;background:#fff;border:0;border-radius:2px;box-shadow:var(--pop);padding:4px 0;z-index:40;display:flex;flex-direction:column}
@@ -659,3 +660,196 @@ body.np-in #dock>*:not(.pizza-wrap){animation:np-fade .5s 1.05s both}
   .story{position:fixed;left:8px;right:8px;bottom:80px;width:auto;z-index:45}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═══ touch: no pointer to aim with ═══
+   Targets are about 40 px, fields are 16 px (a smaller one makes iOS zoom the page), the time line is dragged sideways by a finger. */
+.tl svg{touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+.defnote{position:fixed;left:10px;right:10px;bottom:calc(var(--bars,110px) + 10px);z-index:97;background:#fff;box-shadow:var(--pop);padding:10px 12px;font-size:13px;line-height:1.4;color:var(--grey-dark);border-radius:2px;max-width:560px}
+@media (pointer:coarse){
+  .btn-line,.btn-toggle,.dock-x,.crumbs button{min-height:40px}
+  .btn-toggle{display:inline-flex;align-items:center}
+  .tb-sel,.search input,#scatter select{font-size:16px}
+  .tb-sel{min-height:40px}
+  .row{min-height:40px;padding:2px 0}
+  .search-list li{padding:11px 12px;font-size:14px}
+  .zoomctl button{width:40px;height:40px;font-size:17px}
+  .legend .lg-x{padding:11px 13px;right:0;top:0}
+  .legend .lg-seg button{padding:11px 0}
+  #scatter .sc-key.door{padding:9px 2px}
+  .story .dots i{height:30px;padding:13px 0}
+  .scope .x{width:36px;height:36px}
+  #scatter select,#scatter .sc-colby,#cmp-input{min-height:40px}
+  #scatter .sc-colby select{padding:6px 2px}
+  table.tv td{padding-top:9px;padding-bottom:9px}
+  table.tv th{padding-top:10px;padding-bottom:9px}
+  #foot p{font-size:11px}
+  .tl .ax text,.tl .tl-lab{font-size:11px}
+}
+
+/* ═══ phone ═══
+   One working surface (the map, the chart or the table) between the key numbers and the time line, five tabs below. Pizza and Details are
+   pages that cover the surface. Nothing on the page scrolls. Flat surfaces, hairlines, emphasis in colour and weight (see "the look"). */
+.hdr-icon,#tabbar,.hdr-note{display:none}
+html.phone .hdr-note{display:block;margin-top:8px;padding-top:10px;border-top:1px solid var(--grey-border);max-height:34dvh;overflow-y:auto}
+html.phone .hdr-note p{font-size:11px;line-height:1.45;color:var(--grey-text);margin:0 0 6px}
+html.phone .hdr-note strong{color:var(--grey-dark)}
+html.phone,html.phone body{height:100dvh}
+html.phone body{overflow:hidden;display:flex;flex-direction:column;overscroll-behavior:none}
+html.phone{--bars:calc(112px + env(safe-area-inset-bottom,0px))}
+/* header: the logo, the title on one line, search and a menu that holds the rest */
+html.phone #main-header{position:relative;border-bottom-width:3px}
+html.phone .header-inner{padding:0 6px 0 10px}
+html.phone .header-title{flex-wrap:nowrap;gap:6px;padding:0;min-height:46px}
+html.phone .header-logo{width:30px;height:30px;padding:0}
+html.phone .header-text{flex:1;min-width:0}
+html.phone .header-text h3{font-size:14px;line-height:1.18;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html.phone .header-text h4{display:none}
+html.phone .hdr-icon{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border:0;background:none;color:var(--grey-dark);cursor:pointer;flex-shrink:0;padding:0}
+html.phone .hdr-icon[aria-expanded="true"]{color:var(--un-blue-dark)}
+html.phone .header-actions{display:none;position:absolute;left:0;right:0;top:100%;z-index:60;width:auto;flex-direction:column;align-items:stretch;gap:2px;background:#fff;box-shadow:var(--pop);padding:10px 16px 12px}
+html.phone.menu-open .header-actions{display:flex}
+html.phone .header-actions .search input{width:100%;padding:11px 2px;font-size:16px}
+html.phone .search-list{left:0;right:0;width:auto;max-height:46dvh}
+html.phone .header-actions .tb-sel{max-width:none;width:100%;padding:11px 18px 11px 2px;font-size:16px}
+html.phone .header-actions .btn-line{text-align:left;padding:12px 0;font-size:15px;min-height:44px;border-top:1px solid var(--grey-border)}
+html.phone .header-actions .search,html.phone .header-actions .tb-sel{margin-bottom:4px}
+/* key numbers: all of them, in a row of columns under the name of what is shown */
+html.phone #kpi-bar{padding:6px 12px 7px;gap:2px 12px;flex-wrap:wrap}
+html.phone .kpi-inner{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:3px 12px;overflow:visible;align-items:start;width:100%;flex:1 1 100%}
+html.phone .kpi-ctx{grid-column:1/-1;flex-direction:row;align-items:baseline;gap:8px;padding:0;min-width:0}
+html.phone .kpi-ctx b{font-size:14px;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
+html.phone .kpi-ctx span{overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:60%}
+html.phone .kpi-divider{display:none}
+html.phone .kpi-item{white-space:normal;min-width:0;flex-shrink:1}
+html.phone .kpi-value{font-size:clamp(13px,3.7vw,15px);white-space:nowrap}
+html.phone .kpi-lead .kpi-value{font-size:clamp(14px,4.1vw,17px)}
+html.phone .kpi-label{font-size:10.5px;line-height:1.2}
+html.phone .kpi-warn{grid-column:1/-1;margin-left:0;white-space:normal}
+html.phone #meas-fld{flex-basis:100%}
+/* the working surface and its pages */
+html.phone #stage{display:block;position:relative;flex:1;min-height:0}
+html.phone #mapwrap{position:absolute;inset:0;height:auto;min-height:0}
+html.phone #dock,html.phone #panel{display:block;visibility:hidden;position:absolute;inset:0;z-index:30;overflow-y:auto;overflow-x:hidden;background:#fff;border:0;padding:10px 14px 24px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+html.phone.page-dock #dock,html.phone.page-panel #panel{visibility:visible}
+html.phone .pizza-wrap{max-width:min(100%,400px)}
+/* the lens bar: one row that scrolls sideways (the second-layer lenses are in it, not in a menu); the view is chosen in the tab bar */
+html.phone .map-top{left:0;right:0;top:0;padding:0;gap:0;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--grey-border);pointer-events:auto;flex-direction:row;z-index:12}
+html.phone .map-top>*:not(.scope){background:none;padding:0;border-radius:0}
+html.phone .map-top>.tb-fld:nth-child(2){display:none}
+html.phone .map-top>.tb-fld:first-child{flex:1 1 100%;min-width:0}
+html.phone .map-top .tb-cap{display:none}
+html.phone #lens{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:0 4px;gap:0;width:100%;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+html.phone #lens::-webkit-scrollbar{display:none}
+html.phone #lens .btn-toggle{flex-shrink:0;padding:11px 9px 12px;background-position:9px 100%}
+html.phone .more{display:contents}
+html.phone #lens-more{display:none}
+html.phone #lens-menu,html.phone #lens-menu.hidden{display:contents!important}
+html.phone .menu button{display:block;flex-shrink:0;padding:11px 9px 12px;border-radius:0;font:600 13px/1.2 var(--font);color:var(--grey-text);white-space:nowrap;background:linear-gradient(var(--un-blue),var(--un-blue)) no-repeat 9px 100%/0 2px;text-align:left}
+html.phone .menu button b{font-size:13px;font-weight:600;color:inherit}
+html.phone .menu button span{display:none}
+html.phone .menu button.active{color:var(--un-blue-dark);background-size:calc(100% - 18px) 2px}
+html.phone .scope{margin:4px 8px 6px;order:3;flex:0 0 auto;min-height:34px;padding-left:14px}
+html.phone .legend{max-width:calc(100% - 70px);bottom:8px;left:8px}
+html.phone .zoomctl{right:8px;bottom:8px}
+html.phone #zin,html.phone #zout{display:none}
+html.phone .story{position:absolute;left:0;right:0;bottom:0;width:auto;max-height:62%;overflow-y:auto;box-shadow:0 -6px 24px rgba(0,58,117,.14);padding:12px 16px 10px;border-radius:0}
+html.phone.storying #kpi-bar{display:none}
+html.phone .story p{font-size:13.5px}
+html.phone .story h3{font-size:17px}
+html.phone .mapmsg{max-width:90%}
+/* time line and tabs */
+html.phone #timeline{position:static;height:58px;padding:2px 10px;gap:8px}
+html.phone .tl{height:52px}
+html.phone .tl-year{width:50px}
+html.phone .tl-year b{font-size:18px}
+html.phone .tl-year .cap{font-size:11px}
+html.phone #play{width:44px;height:44px;flex-shrink:0}
+html.phone #foot{display:none}
+html.phone #tabbar{display:flex;flex-shrink:0;background:#fff;border-top:1px solid var(--grey-border);padding-bottom:env(safe-area-inset-bottom,0px);z-index:41}
+#tabbar button{flex:1 1 0;min-width:0;min-height:52px;border:0;background:none;font:600 13px/1.1 var(--font);color:var(--grey-text);position:relative;cursor:pointer;padding:0 2px;-webkit-tap-highlight-color:transparent}
+#tabbar button.on{color:var(--un-blue-dark);font-weight:700}
+#tabbar button.on::before{content:"";position:absolute;left:28%;right:28%;top:-1px;height:3px;background:var(--un-blue)}
+#tabbar button.first-page-tab{border-left:1px solid var(--grey-border)}
+#tabbar button.has::after{content:"";position:absolute;top:11px;left:calc(50% + 28px);width:6px;height:6px;border-radius:50%;background:var(--un-blue)}
+/* Compare: the chart first, then what it says (the surface scrolls, the page does not) */
+html.phone #scatter{padding-top:calc(var(--toph,44px) + 8px)}
+@media (max-width:700px){
+  html.phone #scatter{flex-direction:column;gap:6px;overflow-y:auto;overscroll-behavior:contain;padding:calc(var(--toph,44px) + 6px) 10px 12px}
+  html.phone #scatter .sc-side{display:contents}
+  html.phone #scatter .sc-dots{order:0}
+  html.phone #scatter h4{order:1;flex:0 0 auto;font-size:15px}
+  html.phone #scatter .sc-main{order:2;flex:0 0 clamp(290px,47dvh,370px)}
+  html.phone #scatter .sc-find,html.phone #scatter .sc-sel,html.phone #scatter .sc-keyblock,html.phone #scatter .sc-hint{order:3;flex:0 0 auto}
+  html.phone #scatter .sc-keyblock{margin-top:6px}
+  html.phone #scatter .sc-eye{display:none}
+  html.phone #scatter .sc-xrow{padding-right:0}
+  html.phone #scatter .sc-note{display:none}
+}
+html.phone .sc-main .sc-yrow select,html.phone .sc-main .sc-xr select{max-width:100%}
+/* Table: the economy stays in view while the columns scroll */
+html.phone #tableview{padding:calc(var(--toph,44px) + 6px) 0 0}
+html.phone .tv-note{padding:0 10px;flex-wrap:wrap;gap:2px 10px}
+html.phone table.tv th.l,html.phone table.tv td.l{position:sticky;left:0;background:#fff;z-index:2;max-width:42vw;box-shadow:1px 0 0 var(--grey-border)}
+html.phone table.tv tbody tr:hover td.l{background:#fff}
+/* the first page: the pizza and the way in come first, the explanation after them */
+html.phone .cover.stack .cv-eyebrow{display:none}
+html.phone .cover.stack .cv-text h1{order:1;font-size:27px;line-height:1.1;margin:10px 0 8px}
+html.phone .cover.stack .cv-cta{order:2;margin-bottom:4px}
+html.phone .cover.stack .cv-stage{order:3}
+html.phone .cover.stack .cv-card,html.phone .cover.stack .cv-board{order:4}
+html.phone .cover.stack .cv-lead{order:5;margin-top:12px}
+html.phone .cover.stack .cv-nums{order:6}
+html.phone .cover.stack .cv-src{order:7}
+html.phone .cover.stack .cv-art{padding:0 14px 24px}
+html.phone .cover.stack .cv-card{min-height:0;margin-bottom:8px}
+html.phone .cover.stack .cv-pizza{width:min(100%,430px);margin-left:auto;margin-right:auto}
+html.phone .cover.stack .cv-year{width:min(100%,430px);margin-left:auto;margin-right:auto}
+
+.cv-btn.wait{opacity:.75;cursor:progress}
+html.phone small{font-size:max(10.5px,.85em)}
+html.phone .panel input,html.phone .panel select,html.phone input[type=text],html.phone input[type=search]{font-size:16px}
+/* safe areas (notch, home bar) */
+html.phone body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+/* tablets on touch (up to 1050 px): the working surface is wide, so the chart page keeps its side column and the lens bar its caption */
+@media (min-width:701px){
+  html.phone .map-top .tb-cap{display:inline}
+  html.phone #scatter{flex-direction:row}
+  html.phone .pizza-wrap{max-width:min(100%,460px)}
+  html.phone #dock,html.phone #panel{padding:14px 22px 28px}
+  html.phone .cover.stack .cv-pizza{width:min(100%,520px)}
+  html.phone .cover.stack .cv-year{width:min(100%,520px)}
+}
+/* a phone held sideways (a window of about 340 px): the tabs become a rail on the right, the bars are thin, the map keeps what is left */
+html.land body{display:grid;grid-template-columns:minmax(0,1fr) 62px;grid-template-rows:auto auto minmax(0,1fr) auto;padding-left:env(safe-area-inset-left,0px);padding-right:0}
+html.land #main-header{grid-area:1/1}
+html.land #kpi-bar{grid-area:2/1}
+html.land #stage{grid-area:3/1;min-height:0}
+html.land #timeline{grid-area:4/1}
+html.land #tabbar{grid-area:1/2/5/3;flex-direction:column;border-top:0;border-left:1px solid var(--grey-border);padding:0 env(safe-area-inset-right,0px) 0 0}
+html.land #tabbar button{min-height:0;flex:1 1 0;font-size:12px}
+html.land #tabbar button.on::before{left:-1px;right:auto;top:22%;bottom:22%;width:3px;height:auto}
+html.land #tabbar button.first-page-tab{border-left:0;border-top:1px solid var(--grey-border)}
+html.land #tabbar button.has::after{top:6px;left:calc(50% + 24px)}
+html.land #main-header{border-bottom-width:2px}
+html.land .header-title{min-height:36px}
+html.land .header-logo{width:24px;height:24px}
+html.land .header-text h3{font-size:13px;-webkit-line-clamp:1}
+html.land .hdr-icon{width:38px;height:36px}
+html.land #kpi-bar{padding:3px 12px}
+html.land .kpi-inner{display:flex;flex-wrap:nowrap;gap:2px 16px;overflow-x:auto;scrollbar-width:none}
+html.land .kpi-ctx{grid-column:auto;flex-direction:row;flex-shrink:0}
+html.land .kpi-item{flex-shrink:0;white-space:nowrap;max-width:150px}
+html.land .kpi-label{font-size:10.5px;overflow:hidden;text-overflow:ellipsis}
+html.land .kpi-ctx span{display:none}
+html.land .kpi-value{font-size:14px}
+html.land .kpi-lead .kpi-value{font-size:15px}
+html.land #timeline{height:44px;padding:0 10px}
+html.land .tl{height:42px}
+html.land .tl-year{width:auto;flex-direction:row;align-items:baseline;gap:6px}
+html.land .tl-year .cap{display:none}
+html.land .tl-year b{font-size:16px}
+html.land #lens .btn-toggle{padding-top:6px;padding-bottom:7px}
+html.land .legend{display:none}
+html.land .tl .ev{display:none}
+html.land.storying #kpi-bar{display:none}
+html.land .story{max-height:78%}
